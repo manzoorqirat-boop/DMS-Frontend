@@ -50,26 +50,20 @@ export interface DocumentSummary {
 }
 
 /**
- * Query params GET /api/documents actually accepts.
+ * Query params GET /api/documents accepts. Every one of these is applied server-side.
  * <p>
- * Notably absent: a `status` filter. The backend endpoint filters by site, department,
- * document type, a free-text search on number/title, and whether to show only current
- * revisions — nothing lets the server filter by DocumentStatus. Don't build a client-side
- * "status filter" against a single page of results; it would silently misbehave under
- * pagination (fewer rows shown than the page size, or a filtered view that misses matching
- * rows sitting on other pages). This is a real backend gap, not a frontend omission — see the
- * README.
+ * `status` was genuinely absent for a while, and the register deliberately shipped without a
+ * status filter rather than faking one client-side — filtering a single fetched page would
+ * misbehave the moment the register outgrew one page, showing fewer rows than the page size
+ * and missing matching rows sitting on other pages. The backend now filters by status
+ * properly, which is what allows both the register's filter and the dashboard's per-stage
+ * counts to be trustworthy.
  */
 export interface ListDocumentsParams {
   siteId?: string;
   departmentId?: string;
   documentTypeId?: string;
   search?: string;
-  /**
-   * Filtered server-side. Counting statuses in a fetched page would be wrong the moment the
-   * register outgrows one page — it would report whatever landed on that page rather than the
-   * real total.
-   */
   status?: DocumentStatus;
   currentRevisionsOnly?: boolean;
   page?: number;
