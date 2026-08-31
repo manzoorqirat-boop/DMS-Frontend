@@ -21,6 +21,7 @@ export function listDocuments(
       departmentId: params.departmentId,
       documentTypeId: params.documentTypeId,
       search: params.search,
+      status: params.status,
       currentRevisionsOnly: params.currentRevisionsOnly,
       page: params.page,
       pageSize: params.pageSize,
