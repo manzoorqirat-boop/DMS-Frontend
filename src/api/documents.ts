@@ -1,4 +1,4 @@
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, apiFetchBlob } from "@/lib/api-client";
 import { toQueryString } from "@/types/paging";
 import type { PagedResult } from "@/types/paging";
 import type { CreateDraftRequest, DocumentSummary, ListDocumentsParams, ReviseRequest } from "@/types/documents";
@@ -63,4 +63,15 @@ export function withdrawDocument(id: string): Promise<DocumentSummary> {
 /** POST /api/documents/{id}/revise — opens Rev n+1 as a new Draft from the version currently in force. */
 export function reviseDocument(id: string, request: ReviseRequest): Promise<DocumentSummary> {
   return apiFetch<DocumentSummary>(`/api/documents/${id}/revise`, { method: "POST", body: request });
+}
+
+/**
+ * GET /api/documents/{id}/approved-pdf
+ *
+ * The PDF rendition of an approved document, with the signature manifest as its final page.
+ * Built on first request and cached, so the first call after an approval may take a few
+ * seconds while the document server converts it.
+ */
+export function downloadApprovedPdf(documentId: string): Promise<Blob> {
+  return apiFetchBlob(`/api/documents/${documentId}/approved-pdf`);
 }
