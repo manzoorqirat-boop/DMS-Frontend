@@ -271,12 +271,15 @@ export function DocumentDetailPage() {
   async function handleDownloadPdf() {
     if (!document) return;
     setIsDownloadingPdf(true);
-    setError(null);
+    // setActionError, matching every other action handler on this page — documentError is for
+    // the document failing to load, and a failed PDF download must not make the page look as
+    // though the document itself is unavailable.
+    setActionError(null);
     try {
       const blob = await downloadApprovedPdf(document.id);
       downloadBlob(blob, `${document.documentNumber}-r${document.revisionLabel}.pdf`);
     } catch (err) {
-      setError(
+      setActionError(
         err instanceof ApiError ? err.message : "Could not produce the approved PDF.",
       );
     } finally {
