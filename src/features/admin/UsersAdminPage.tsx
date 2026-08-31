@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { AlertTriangle, Loader2, Plus, Users2 } from "lucide-react";
 import { createUser, deactivateUser, listUsers, reactivateUser } from "@/api/users";
 import { ApiError } from "@/lib/api-client";
+import { formatDateOnly } from "@/lib/format";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { EmptyState } from "@/components/EmptyState";
 import type { UserSummary } from "@/types/users";
@@ -21,7 +22,7 @@ function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-const emptyForm = { userName: "", fullName: "", department: "", designation: "", password: "" };
+const emptyForm = { userName: "", fullName: "", department: "", designation: "", password: "", employeeId: "" };
 
 export function UsersAdminPage() {
   const [users, setUsers] = useState<UserSummary[]>([]);
@@ -62,6 +63,10 @@ export function UsersAdminPage() {
         department: form.department.trim(),
         designation: form.designation.trim(),
         password: form.password,
+        // Optional: §11.100(b) asks that an individual's identity be verified before their
+        // e-signature is issued, and a payroll-backed identifier is what ties the account to a
+        // verified person rather than to a login someone created.
+        employeeId: form.employeeId.trim() || null,
       });
       setForm(emptyForm);
       refresh();
@@ -94,6 +99,29 @@ export function UsersAdminPage() {
     { key: "fullName", header: "Full name", render: (u) => u.fullName },
     { key: "department", header: "Department", render: (u) => u.department },
     { key: "designation", header: "Designation", render: (u) => u.designation },
+    {
+      key: "employeeId",
+      header: "Employee ID",
+      className: "font-mono text-xs",
+      render: (u) => u.employeeId ?? <span className="text-text-tertiary">—</span>,
+    },
+    {
+      key: "passwordState",
+      header: "Password",
+      render: (u) =>
+        u.mustChangePassword ? (
+          // Worth showing: an account in this state has a password its administrator knows,
+          // and since the password is also the signing credential, it cannot sign anything
+          // until the holder has replaced it.
+          <span className="inline-flex items-center rounded-full bg-stage-review/10 px-2.5 py-0.5 text-xs font-medium text-stage-review">
+            Change required
+          </span>
+        ) : (
+          <span className="font-mono text-xs text-text-secondary">
+            set {formatDateOnly(u.passwordLastChanged.slice(0, 10))}
+          </span>
+        ),
+    },
     {
       key: "status",
       header: "Status",
@@ -159,7 +187,11 @@ export function UsersAdminPage() {
           <input id="designation" value={form.designation} onChange={(e) => setForm((f) => ({ ...f, designation: e.target.value }))} placeholder="QA Officer" className={inputClasses} />
         </div>
         <div>
-          <label htmlFor="password" className="mb-[6px] block text-xs font-semibold text-text-primary">Password</label>
+          <label htmlFor="employeeId" className="mb-[6px] block text-xs font-semibold text-text-primary">Employee ID (optional)</label>
+          <input id="employeeId" value={form.employeeId} onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))} placeholder="EMP-10421" className={`font-mono ${inputClasses}`} />
+        </div>
+        <div>
+          <label htmlFor="password" className="mb-[6px] block text-xs font-semibold text-text-primary">Initial password</label>
           <input id="password" type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} placeholder="Temporary" className={inputClasses} />
         </div>
         <div className="col-span-2 flex items-end sm:col-span-5">
