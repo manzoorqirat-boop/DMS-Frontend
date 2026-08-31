@@ -1,5 +1,10 @@
 import { apiFetch } from "@/lib/api-client";
-import type { EditingSessionView, EditorLaunchView, ViewerLaunchView } from "@/types/editing";
+import type {
+  DesktopEditLaunchView,
+  EditingSessionView,
+  EditorLaunchView,
+  ViewerLaunchView,
+} from "@/types/editing";
 
 /**
  * POST /api/documents/{id}/edit
@@ -41,4 +46,18 @@ export function listEditingSessions(
  */
 export function startViewSession(documentId: string): Promise<ViewerLaunchView> {
   return apiFetch<ViewerLaunchView>(`/api/documents/${documentId}/view`, { method: "POST" });
+}
+
+/**
+ * POST /api/documents/{id}/edit/desktop — checks the document out and returns the URLs for
+ * opening it in desktop Microsoft Word.
+ *
+ * Same guards as startEditingSession: Draft only, DocumentEdit required, re-entrant for
+ * whoever already holds the lock. The difference is where the file ends up — this path puts it
+ * on the user's machine, which the in-browser path exists to avoid.
+ */
+export function startDesktopEditSession(documentId: string): Promise<DesktopEditLaunchView> {
+  return apiFetch<DesktopEditLaunchView>(`/api/documents/${documentId}/edit/desktop`, {
+    method: "POST",
+  });
 }
