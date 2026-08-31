@@ -23,6 +23,7 @@ import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { PaginationBar } from "@/components/PaginationBar";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
+import { DesktopEditButton } from "@/features/documents/DesktopEditButton";
 import { DocumentCopiesSection } from "@/features/documents/DocumentCopiesSection";
 import { DocumentLifecycleSection } from "@/features/documents/DocumentLifecycleSection";
 import type { DocumentSummary } from "@/types/documents";
@@ -392,6 +393,10 @@ export function DocumentDetailPage() {
             document in review is frozen against the hash its signatures are applied to.
             The button always shows for a Draft even when no document server is configured —
             the editor page explains that case far better than a hidden button does. */}
+        {/* Desktop Word. Offered alongside the browser editor rather than instead of it: this
+            path downloads the controlled file to the user's machine, so it should be a
+            deliberate choice rather than the default. See DesktopEditButton. */}
+        {canEdit && <DesktopEditButton documentId={document.id} />}
         {canEdit && (
           <button
             type="button"
