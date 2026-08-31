@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FileX2, Plus, Search } from "lucide-react";
 import { listDocuments } from "@/api/documents";
 import { ApiError } from "@/lib/api-client";
