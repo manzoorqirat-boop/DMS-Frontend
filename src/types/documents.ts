@@ -65,6 +65,12 @@ export interface ListDocumentsParams {
   departmentId?: string;
   documentTypeId?: string;
   search?: string;
+  /**
+   * Filtered server-side. Counting statuses in a fetched page would be wrong the moment the
+   * register outgrows one page — it would report whatever landed on that page rather than the
+   * real total.
+   */
+  status?: DocumentStatus;
   currentRevisionsOnly?: boolean;
   page?: number;
   pageSize?: number;
