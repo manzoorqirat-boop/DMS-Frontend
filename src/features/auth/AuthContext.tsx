@@ -16,6 +16,11 @@ export interface AuthContextValue {
   /** True only during the initial check of sessionStorage on first load. */
   isLoading: boolean;
   login: (userName: string, password: string) => Promise<void>;
+  /**
+   * Clears the forced-password-change lock after the user has actually changed it. Updates the
+   * stored session too, so the lock doesn't reappear on the next page refresh.
+   */
+  clearPasswordChangeRequirement: () => void;
   logout: () => void;
 }
 
@@ -47,6 +52,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, [logout]);
 
+  const clearPasswordChangeRequirement = useCallback(() => {
+    setUser((current) => {
+      if (!current) {
+        return current;
+      }
+
+      const updated = { ...current, mustChangePassword: false, passwordChangeReason: null };
+      saveSession(updated);
+      return updated;
+    });
+  }, []);
+
   const login = useCallback(async (userName: string, password: string) => {
     // anonymous: true — this is the one call that must not carry whatever stale token might
     // still be set, since it's the call that's about to establish a new one.
@@ -62,8 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isLoading, login, logout }),
-    [user, isLoading, login, logout],
+    () => ({ user, isLoading, login, logout, clearPasswordChangeRequirement }),
+    [user, isLoading, login, logout, clearPasswordChangeRequirement],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
