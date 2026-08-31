@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   FileClock,
+  FileDown,
   GitBranch,
   Eye,
   History,
@@ -12,7 +13,14 @@ import {
   PenLine,
   ScrollText,
 } from "lucide-react";
-import { getDocument, listRevisions, reviseDocument, withdrawDocument } from "@/api/documents";
+import {
+  downloadApprovedPdf,
+  getDocument,
+  listRevisions,
+  reviseDocument,
+  withdrawDocument,
+} from "@/api/documents";
+import { downloadBlob } from "@/api/exports";
 import { listAuditEvents } from "@/api/audit";
 import { getRoute, getRouteTemplate, makeEffective, signDocument, submitForReview } from "@/api/review";
 import { ApiError } from "@/lib/api-client";
@@ -91,6 +99,7 @@ export function DocumentDetailPage() {
 
   // Withdraw / revise
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [showRevisePanel, setShowRevisePanel] = useState(false);
   const [reviseReason, setReviseReason] = useState("");
   const [isRevising, setIsRevising] = useState(false);
@@ -259,6 +268,22 @@ export function DocumentDetailPage() {
     }
   }
 
+  async function handleDownloadPdf() {
+    if (!document) return;
+    setIsDownloadingPdf(true);
+    setError(null);
+    try {
+      const blob = await downloadApprovedPdf(document.id);
+      downloadBlob(blob, `${document.documentNumber}-r${document.revisionLabel}.pdf`);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : "Could not produce the approved PDF.",
+      );
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }
+
   async function handleWithdraw() {
     if (!id) return;
     if (!window.confirm("Withdraw this draft? The document number stays burned and is not reused.")) {
@@ -330,6 +355,9 @@ export function DocumentDetailPage() {
     document.status === "InReview" && currentStep && user?.userName === currentStep.userName;
 
   // Mirrors ControlledDocument.IsEditable, which the backend enforces regardless.
+  // Approved onward: Approved, Effective, Superseded and Obsolete all have frozen content
+  // and a signature manifest. A Draft or InReview document has neither.
+  const hasApprovedPdf = ["Approved", "Effective", "Superseded", "Obsolete"].includes(document.status);
   const canEdit = document.status === "Draft";
   const canSubmit = document.status === "Draft";
   const canWithdraw = document.status === "Draft";
@@ -378,6 +406,24 @@ export function DocumentDetailPage() {
       {actionError && <ActionErrorBanner message={actionError} />}
 
       <div className="mb-8 flex flex-wrap gap-2.5">
+        {/* The approved artefact. Offered from Approved onward — before that there is no
+            frozen content and no signature manifest to render, and the backend refuses with
+            not_approved rather than producing a PDF of a moving target. */}
+        {hasApprovedPdf && (
+          <button
+            type="button"
+            onClick={handleDownloadPdf}
+            disabled={isDownloadingPdf}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface disabled:opacity-60"
+          >
+            {isDownloadingPdf ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <FileDown className="h-4 w-4" aria-hidden="true" />
+            )}
+            {isDownloadingPdf ? "Preparing PDF…" : "Approved PDF"}
+          </button>
+        )}
         {/* Viewing is offered at every status and to anyone who can see the document — a
             reviewer or approver has to be able to read what they are about to sign, and they
             are looking at documents that are deliberately no longer editable. */}
