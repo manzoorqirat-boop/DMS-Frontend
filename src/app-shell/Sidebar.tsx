@@ -13,6 +13,7 @@ import {
   PackageCheck,
   PenLine,
   ShieldCheck,
+  KeyRound,
   Tags,
   Users2,
 } from "lucide-react";
@@ -50,6 +51,7 @@ const NAV_GROUPS: {
       { to: "/admin/templates", label: "Templates", icon: LayoutTemplate },
       { to: "/admin/users", label: "Users", icon: Users2 },
       { to: "/admin/roles", label: "Roles", icon: ShieldCheck },
+      { to: "/admin/password-policy", label: "Password policy", icon: KeyRound },
       { to: "/admin/workflows", label: "Review routes", icon: GitBranch },
       { to: "/admin/metadata", label: "Metadata fields", icon: Tags },
       { to: "/admin/numbering", label: "Numbering", icon: Hash },
