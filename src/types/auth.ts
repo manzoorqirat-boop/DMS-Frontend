@@ -22,6 +22,20 @@ export interface LoginResult {
   fullName: string;
   department: string;
   designation: string;
+
+  /**
+   * The caller must change their password before doing anything else — either the account was
+   * just created (the administrator who set the password knows it, and here the password is
+   * also the e-signature credential), or it has passed the policy's expiry.
+   *
+   * A token IS issued either way, because changing a password requires being authenticated.
+   * The app is responsible for refusing to go anywhere except the change screen until this
+   * clears; see ProtectedRoute.
+   */
+  mustChangePassword: boolean;
+
+  /** "new_account" or "password_expired" when mustChangePassword is set. */
+  passwordChangeReason: string | null;
 }
 
 /**
