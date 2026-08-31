@@ -24,6 +24,7 @@ import { NumberingRulesAdminPage } from "@/features/admin/NumberingRulesAdminPag
 import { PoliciesAdminPage } from "@/features/admin/PoliciesAdminPage";
 import { NotificationRulesAdminPage } from "@/features/admin/NotificationRulesAdminPage";
 import { JobsAdminPage } from "@/features/admin/JobsAdminPage";
+import { PasswordPolicyAdminPage } from "@/features/admin/PasswordPolicyAdminPage";
 import { ChangePasswordPage } from "@/features/settings/ChangePasswordPage";
 
 export function App() {
@@ -66,6 +67,7 @@ export function App() {
               <Route path="/admin/policies" element={<PoliciesAdminPage />} />
               <Route path="/admin/notification-rules" element={<NotificationRulesAdminPage />} />
               <Route path="/admin/jobs" element={<JobsAdminPage />} />
+              <Route path="/admin/password-policy" element={<PasswordPolicyAdminPage />} />
             </Route>
           </Route>
 
