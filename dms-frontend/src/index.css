@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-surface text-text-primary font-body;
+  }
+
+  /* Visible keyboard focus everywhere, not just on inputs with their own focus ring below.
+     An enterprise tool used all day by people tabbing through forms cannot afford to lose
+     this the way a marketing site sometimes does for "cleanliness." */
+  :focus-visible {
+    outline: 2px solid theme("colors.brand.DEFAULT");
+    outline-offset: 2px;
+  }
+}
+
+/* The one orchestrated load-in on the login screen. Respecting reduced-motion means turning
+   it off entirely, not just shortening it — a user who asked for less motion did not ask for
+   a faster version of the same thing. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
