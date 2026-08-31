@@ -11,7 +11,8 @@ import { PaginationBar } from "@/components/PaginationBar";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import type { PagedResult } from "@/types/paging";
-import type { DocumentSummary } from "@/types/documents";
+import { LIFECYCLE_STAGES } from "@/lib/lifecycle";
+import type { DocumentStatus, DocumentSummary } from "@/types/documents";
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -19,11 +20,41 @@ export function DocumentRegisterPage() {
   const navigate = useNavigate();
   const { documentTypes } = useOrganisationData();
 
+  // Read from the URL so the dashboard's per-stage links land on a filtered register, and so
+  // a filtered view is shareable and survives a refresh. The URL is the source of truth for
+  // these two rather than component state, which would silently discard the incoming link.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const status = (searchParams.get("status") ?? "") as DocumentStatus | "";
+  const currentRevisionsOnly = searchParams.get("currentRevisionsOnly") !== "false";
+
+  function setStatus(next: string) {
+    const params = new URLSearchParams(searchParams);
+    if (next) {
+      params.set("status", next);
+    } else {
+      params.delete("status");
+    }
+    setSearchParams(params, { replace: true });
+    setPage(1);
+  }
+
+  function setCurrentRevisionsOnly(next: boolean) {
+    const params = new URLSearchParams(searchParams);
+    // Only written when false — "current revisions only" is the default, and a URL carrying
+    // the default value is noise in something people copy and share.
+    if (next) {
+      params.delete("currentRevisionsOnly");
+    } else {
+      params.set("currentRevisionsOnly", "false");
+    }
+    setSearchParams(params, { replace: true });
+    setPage(1);
+  }
+
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebouncedValue(searchInput, 350);
 
   const [documentTypeId, setDocumentTypeId] = useState<string>("");
-  const [currentRevisionsOnly, setCurrentRevisionsOnly] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
@@ -41,6 +72,7 @@ export function DocumentRegisterPage() {
         search: debouncedSearch || undefined,
         documentTypeId: documentTypeId || undefined,
         currentRevisionsOnly,
+        status: status || undefined,
         page,
         pageSize,
       },
@@ -58,13 +90,13 @@ export function DocumentRegisterPage() {
       .finally(() => setIsLoading(false));
 
     return () => controller.abort();
-  }, [debouncedSearch, documentTypeId, currentRevisionsOnly, page, pageSize]);
+  }, [debouncedSearch, documentTypeId, currentRevisionsOnly, status, page, pageSize]);
 
   function resetToFirstPage() {
     setPage(1);
   }
 
-  const hasActiveFilters = searchInput !== "" || documentTypeId !== "";
+  const hasActiveFilters = searchInput !== "" || documentTypeId !== "" || status !== "";
 
   const columns: DataTableColumn<DocumentSummary>[] = [
     {
@@ -165,14 +197,24 @@ export function DocumentRegisterPage() {
           ))}
         </select>
 
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="rounded-lg border border-border bg-surface-raised px-3 py-2 text-sm text-text-primary"
+        >
+          <option value="">All statuses</option>
+          {LIFECYCLE_STAGES.map((stage) => (
+            <option key={stage.key} value={stage.key}>
+              {stage.label}
+            </option>
+          ))}
+        </select>
+
         <label className="flex items-center gap-2 text-sm text-text-secondary">
           <input
             type="checkbox"
             checked={currentRevisionsOnly}
-            onChange={(e) => {
-              setCurrentRevisionsOnly(e.target.checked);
-              resetToFirstPage();
-            }}
+            onChange={(e) => setCurrentRevisionsOnly(e.target.checked)}
             className="h-4 w-4 rounded border-border text-brand focus:ring-brand-tint"
           />
           Current revisions only
@@ -208,6 +250,7 @@ export function DocumentRegisterPage() {
                     onClick: () => {
                       setSearchInput("");
                       setDocumentTypeId("");
+                      setStatus("");
                       resetToFirstPage();
                     },
                   }
