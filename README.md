@@ -56,24 +56,31 @@ each one flagged where it's a best-effort reconstruction rather than a verified 
 is actually run, nothing catches a drift between these and the real DTOs automatically — if
 a field is renamed on the backend, these files won't know until something breaks at runtime.
 
-**The document register's document-type filter is real; a status filter isn't built, on
-purpose.** `GET /api/documents` accepts `siteId`, `departmentId`, `documentTypeId`, `search`,
-`currentRevisionsOnly`, `page`, and `pageSize` — there's no `status` parameter. A client-side
-"filter by status" against a single page of results would silently misbehave under pagination
-(fewer rows than the page size, or a filtered view that misses matching rows sitting on other
-pages). That's a real gap in the backend's query surface, not something to paper over on the
-frontend — it should be added as a proper query parameter there before this screen pretends
-to support it.
+**Every register filter is applied server-side.** `GET /api/documents` accepts `siteId`,
+`departmentId`, `documentTypeId`, `search`, `status`, `currentRevisionsOnly`, `page`, and
+`pageSize`.
 
-## Known gaps
+`status` was missing for a while, and the register deliberately shipped without a status filter
+rather than faking one client-side: filtering a single fetched page would have misbehaved the
+moment the register outgrew one page, showing fewer rows than the page size and missing
+matching rows on other pages. The backend now filters properly, which is what makes both the
+register's filter and the dashboard's per-stage counts trustworthy.
+
+The register reads `status` and `currentRevisionsOnly` from the URL rather than component
+state, so the dashboard's per-stage links land on a filtered view, and a filtered view is
+shareable and survives a refresh. `currentRevisionsOnly` is only written to the URL when
+false — a URL carrying the default value is noise in something people copy.
+
+## The design system
 
 Palette, type, and the "Lifecycle Rail" concept are documented inline in
 `src/lib/lifecycle.ts` and `src/components/LifecycleRail.tsx` — briefly: the six real document
 statuses (Draft → In review → Approved → Effective → Superseded → Obsolete) are the one place
 this design spends deliberate color, and that same six-color mapping is the single source of
-truth for every status chip anywhere in the app (`src/components/StatusBadge.tsx` already uses
-it). Don't introduce a status color outside `LIFECYCLE_STAGES` / `STAGE_CLASSES` — the entire
-point is that a color means the same thing everywhere it appears.
+truth for every status chip anywhere in the app. `src/components/StatusBadge.tsx` and the
+dashboard's `LifecyclePipeline` both read from it, which is why the sign-in rail, a status chip
+and the dashboard pipeline can never disagree about what a colour means. Don't introduce a
+status color outside `LIFECYCLE_STAGES` / `STAGE_CLASSES`.
 
 Fonts: Space Grotesk (display), IBM Plex Sans (UI text), IBM Plex Mono (document numbers,
 hashes, timestamps — anywhere the content is itself a precise, audit-relevant value rather
@@ -85,35 +92,20 @@ would generate no CSS at all. `STAGE_CLASSES` in `lifecycle.ts` exists specifica
 this — every class any component needs is written out in full there. Keep new status-adjacent
 styling going through that map rather than building class names dynamically.
 
-## The API contract
-
-`src/types/auth.ts` mirrors `Dms.Application.Auth.AuthDtos` by hand — there's no shared-types
-pipeline (no generated OpenAPI client) yet, which is the biggest structural gap in this
-project. The backend does expose Swagger at `/swagger` (see its README) with the full schema;
-generating a typed client from that — `openapi-typescript` or similar — instead of hand-mirrored
-interfaces is the natural next step once more of the API surface has a frontend consumer.
-
-Until then: if a backend DTO shape changes, the corresponding hand-written type here has to be
-updated by a person, and nothing will catch a drift automatically.
-
 ## Known gaps
 
 - **No refresh token, no revocation** — inherited directly from the backend. A stolen token is
   valid until `Jwt:TokenMinutes` runs out (60 minutes in dev) regardless of anything the
   frontend does; logging out client-side doesn't invalidate the token server-side.
-- **No password-change screen.** `POST /api/users/me/change-password` exists on the backend;
-  nothing here calls it yet.
-- **`/admin/users` is stubbed.** The sidebar links to it so navigation reads correctly as more
-  is built, but it currently renders the dashboard placeholder.
-- **No generated API client** — see "The API contract" above.
-- **No status filter on the register** — see "The API contract" above; this one is a backend
-  gap, not a frontend one.
-- **No permission-aware UI.** Every authenticated user sees every sidebar link; nothing checks
-  `GET /api/roles/me/permissions` yet to hide what a user can't act on.
+- **No generated API client** — see "The API contract" above. Hand-mirrored types in
+  `src/types/` are the interim, and nothing catches drift automatically.
+- **No permission-aware UI.** Every authenticated user sees every sidebar link; nothing reads
+  `GET /api/roles/me/permissions` to hide what a user can't act on. Every real check happens
+  server-side, so this is a rough edge rather than a security gap.
 - **No tests.** Nothing here has an equivalent to the backend's `Dms.Domain.Tests`.
-- **No document detail screen.** Clicking a register row does nothing yet — `DataTable`
-  supports an `onRowClick`, but the register doesn't pass one until there's a screen to
-  navigate to.
+- **Desktop Word save is unproven.** The WebDAV round-trip (`Open in Word`) opens and edits
+  correctly but the save-back has not yet succeeded end to end; see the backend README. The
+  in-browser editor and the read-only viewer are unaffected.
 
 ## Project layout
 
