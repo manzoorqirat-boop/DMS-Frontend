@@ -56,3 +56,21 @@ export interface ViewerLaunchView {
   fileUrl: string;
   viewerUserName: string;
 }
+
+/**
+ * Returned by POST /api/documents/{id}/edit/desktop.
+ *
+ * `protocolUrl` is the ms-word: handler URL the browser navigates to. `webDavUrl` is the plain
+ * URL behind it, offered as a fallback: on a machine without desktop Word, navigating to a
+ * ms-word: URL silently does nothing, and a user staring at an unresponsive button deserves
+ * something copyable rather than no feedback at all.
+ */
+export interface DesktopEditLaunchView {
+  sessionId: string;
+  documentId: string;
+  documentNumber: string;
+  title: string;
+  protocolUrl: string;
+  webDavUrl: string;
+  expiresAt: string;
+}
