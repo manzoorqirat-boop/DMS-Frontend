@@ -33,6 +33,7 @@ import { PaginationBar } from "@/components/PaginationBar";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DesktopEditButton } from "@/features/documents/DesktopEditButton";
+import { DocumentAnnexuresSection } from "@/features/documents/DocumentAnnexuresSection";
 import { DocumentCopiesSection } from "@/features/documents/DocumentCopiesSection";
 import { DocumentLifecycleSection } from "@/features/documents/DocumentLifecycleSection";
 import type { DocumentSummary } from "@/types/documents";
@@ -723,6 +724,10 @@ export function DocumentDetailPage() {
       {/* Lifecycle and distribution both apply only once a document is in force, and each
           renders nothing otherwise — so they sit above the historical sections rather than
           being conditionally wrapped here. */}
+      {/* Only on a parent: an annexure cannot itself have annexures, and the backend refuses
+          the nesting outright. */}
+      {!isAnnexure && <DocumentAnnexuresSection parent={document} />}
+
       <DocumentLifecycleSection document={document} onChanged={setDocument} />
 
       {document.status === "Effective" && (
