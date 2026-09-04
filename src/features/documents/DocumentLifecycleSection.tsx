@@ -3,7 +3,7 @@ import { AlertTriangle, CalendarCheck, Ban } from "lucide-react";
 import { obsoleteDocument, recordPeriodicReview } from "@/api/lifecycle";
 import { ApiError } from "@/lib/api-client";
 import { formatDateOnly } from "@/lib/format";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SignatureDialog } from "@/components/SignatureDialog";
 import type { DocumentSummary } from "@/types/documents";
 
 type PendingAction = "periodic-review" | "obsolete";
@@ -83,7 +83,7 @@ export function DocumentLifecycleSection({
         </div>
       </div>
 
-      <ConfirmDialog
+      <SignatureDialog
         open={pending === "periodic-review"}
         title="Record a periodic review"
         description={
@@ -93,13 +93,14 @@ export function DocumentLifecycleSection({
             content actually needs to change, close this and start a revision instead.
           </>
         }
-        confirmLabel="Record review"
+        meaning="I have reviewed this document and it remains correct"
+        confirmLabel="Sign and record"
         reasonLabel="Outcome"
         reasonPlaceholder="What the review found"
         onCancel={() => setPending(null)}
-        onConfirm={async (reason) => {
+        onConfirm={async (password, reason) => {
           try {
-            const updated = await recordPeriodicReview(document.id, { outcome: reason });
+            const updated = await recordPeriodicReview(document.id, { outcome: reason, password });
             onChanged(updated);
             setPending(null);
           } catch (err) {
@@ -110,7 +111,7 @@ export function DocumentLifecycleSection({
         }}
       />
 
-      <ConfirmDialog
+      <SignatureDialog
         open={pending === "obsolete"}
         destructive
         title={`Make ${document.documentNumber} obsolete?`}
@@ -122,13 +123,15 @@ export function DocumentLifecycleSection({
             worklist.
           </>
         }
-        confirmLabel="Make obsolete"
+        meaning="I am withdrawing this document from use"
+        confirmLabel="Sign and withdraw"
+        awaitsCountersignature
         reasonLabel="Reason"
         reasonPlaceholder="Why this document is being withdrawn"
         onCancel={() => setPending(null)}
-        onConfirm={async (reason) => {
+        onConfirm={async (password, reason) => {
           try {
-            const updated = await obsoleteDocument(document.id, { reason });
+            const updated = await obsoleteDocument(document.id, { reason, password });
             onChanged(updated);
             setPending(null);
           } catch (err) {
