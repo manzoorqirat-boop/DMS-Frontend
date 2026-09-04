@@ -88,12 +88,16 @@ export interface DispositionDueView {
 export interface RecordDispositionRequest {
   action: DispositionAction;
   note: string;
+  /** Required, and authorised before it takes effect — destruction cannot be undone. */
+  password?: string;
 }
 
 export interface PeriodicReviewRequest {
   outcome: string;
+  password?: string;
 }
 
 export interface ObsoleteRequest {
   reason: string;
+  password?: string;
 }
