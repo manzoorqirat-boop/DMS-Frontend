@@ -37,6 +37,19 @@ export interface DocumentSummary {
   revisionLabel: string;
   familyId: string;
   isCurrentRevision: boolean;
+
+  /**
+   * The SOP this annexure belongs to, or null for a document that stands on its own.
+   *
+   * An annexure is a controlled document in its own right — own number, own file, own
+   * controlled copies — but it is never separately approvable. It is signed, issued and
+   * withdrawn as part of its parent's lifecycle, so the UI must not offer lifecycle actions on
+   * one; the backend refuses them regardless.
+   */
+  parentDocumentId: string | null;
+
+  /** Position among its parent's annexures (1, 2, 3), driving the number suffix and print order. */
+  annexureNumber: number | null;
   status: DocumentStatus;
   isEditable: boolean;
   author: string;
