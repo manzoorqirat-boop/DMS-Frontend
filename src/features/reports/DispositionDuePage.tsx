@@ -9,7 +9,7 @@ import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { PaginationBar } from "@/components/PaginationBar";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SignatureDialog } from "@/components/SignatureDialog";
 import type { PagedResult } from "@/types/paging";
 import type { DispositionAction, DispositionDueView } from "@/types/lifecycle";
 
@@ -159,7 +159,7 @@ export function DispositionDuePage() {
         />
       )}
 
-      <ConfirmDialog
+      <SignatureDialog
         open={pending !== null}
         destructive={pending?.action === "DestroyContent"}
         title={
@@ -178,13 +178,23 @@ export function DispositionDuePage() {
             "The record is kept indefinitely and leaves this worklist. Use this for records that outlive any retention schedule."
           )
         }
-        confirmLabel={pending?.action === "DestroyContent" ? "Destroy content" : "Retain permanently"}
+        confirmLabel="Sign and record"
+        meaning={
+          pending?.action === "DestroyContent"
+            ? "I am authorising the destruction of this record"
+            : "I am authorising permanent retention of this record"
+        }
+        awaitsCountersignature
         reasonLabel="Rationale"
         reasonPlaceholder="Why this decision was taken"
         onCancel={() => setPending(null)}
-        onConfirm={async (reason) => {
+        onConfirm={async (password, reason) => {
           if (!pending) return;
-          await recordDisposition(pending.row.documentId, { action: pending.action, note: reason });
+          await recordDisposition(pending.row.documentId, {
+            action: pending.action,
+            note: reason,
+            password,
+          });
           setPending(null);
           setRefreshToken((t) => t + 1);
         }}
