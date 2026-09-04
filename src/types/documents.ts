@@ -101,3 +101,16 @@ export interface CreateDraftRequest {
 export interface ReviseRequest {
   reason: string;
 }
+
+
+/**
+ * Body of POST /api/documents/{id}/annexures.
+ *
+ * No site, department or parent — all three come from the parent document. An annexure that
+ * could belong to a different site than the SOP it serves would be incoherent.
+ */
+export interface CreateAnnexureRequest {
+  title: string;
+  /** The annexure's own type — usually a form or record type, not the parent's SOP type. */
+  documentTypeId: string;
+}
