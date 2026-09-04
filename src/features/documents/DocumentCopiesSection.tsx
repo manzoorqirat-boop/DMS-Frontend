@@ -13,7 +13,7 @@ import { ApiError } from "@/lib/api-client";
 import { useOrganisationData } from "@/features/organisation/useOrganisationData";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { EmptyState } from "@/components/EmptyState";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { SignatureDialog } from "@/components/SignatureDialog";
 import type { CopyType, DistributionStatus, DistributionView } from "@/types/distribution";
 
 const inputClasses =
@@ -52,6 +52,9 @@ export function DocumentCopiesSection({
   const [issuedToName, setIssuedToName] = useState("");
   const [departmentId, setDepartmentId] = useState("");
   const [printLimit, setPrintLimit] = useState("1");
+  // Issuing puts paper into circulation and is signed by default. Collected inline rather than
+  // via a dialog because the form is already open — an extra modal would be friction for no gain.
+  const [password, setPassword] = useState("");
   const [isIssuing, setIsIssuing] = useState(false);
 
   function refresh() {
@@ -91,8 +94,10 @@ export function DocumentCopiesSection({
         issuedToDepartmentId: departmentId || null,
         issuedToName: issuedToName.trim(),
         printLimit: copyType === "Uncontrolled" ? (limit ?? null) : limit,
+        password,
       });
       setIssuedToName("");
+      setPassword("");
       setDepartmentId("");
       refresh();
     } catch (err) {
@@ -310,6 +315,20 @@ export function DocumentCopiesSection({
             </label>
           </div>
 
+          <label className="mt-3 block text-xs font-semibold text-text-primary sm:max-w-xs">
+            Your password
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`mt-1 ${inputClasses}`}
+            />
+            <span className="mt-1 block text-xs font-normal text-text-tertiary">
+              Issuing a copy is signed. Being logged in is not a signature.
+            </span>
+          </label>
+
           <button
             type="submit"
             disabled={isIssuing}
@@ -321,7 +340,7 @@ export function DocumentCopiesSection({
         </form>
       )}
 
-      <ConfirmDialog
+      <SignatureDialog
         open={pending !== null}
         destructive={pending?.kind === "close-out"}
         title={
@@ -336,16 +355,26 @@ export function DocumentCopiesSection({
             ? "The copy has been physically collected and is out of circulation."
             : "An unaccounted controlled copy is a finding, and is recorded as one."
         }
-        confirmLabel="Record"
+        meaning={
+          pending?.kind === "retrieve"
+            ? "I collected this copy"
+            : "I am writing this copy off"
+        }
+        confirmLabel="Sign and record"
+        awaitsCountersignature={pending?.kind === "close-out"}
         reasonLabel={pending?.kind === "close-out" ? "Note" : undefined}
         reasonPlaceholder="What happened to this copy"
         onCancel={() => setPending(null)}
-        onConfirm={async (reason) => {
+        onConfirm={async (password, reason) => {
           if (!pending) return;
           if (pending.kind === "retrieve") {
             await retrieveCopy(pending.copy.id);
           } else {
-            await closeOutCopy(pending.copy.id, { outcome: pending.outcome, note: reason });
+            await closeOutCopy(pending.copy.id, {
+              outcome: pending.outcome,
+              note: reason,
+              password,
+            });
           }
           setPending(null);
           refresh();
