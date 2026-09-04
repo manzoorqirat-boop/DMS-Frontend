@@ -28,6 +28,7 @@ export function listDocuments(
       documentTypeId: params.documentTypeId,
       search: params.search,
       status: params.status,
+      includeAnnexures: params.includeAnnexures,
       currentRevisionsOnly: params.currentRevisionsOnly,
       page: params.page,
       pageSize: params.pageSize,
