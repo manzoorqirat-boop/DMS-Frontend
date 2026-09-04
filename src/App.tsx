@@ -25,6 +25,8 @@ import { PoliciesAdminPage } from "@/features/admin/PoliciesAdminPage";
 import { NotificationRulesAdminPage } from "@/features/admin/NotificationRulesAdminPage";
 import { JobsAdminPage } from "@/features/admin/JobsAdminPage";
 import { PasswordPolicyAdminPage } from "@/features/admin/PasswordPolicyAdminPage";
+import { SignaturePolicyAdminPage } from "@/features/admin/SignaturePolicyAdminPage";
+import { CountersignPage } from "@/features/countersign/CountersignPage";
 import { ChangePasswordPage } from "@/features/settings/ChangePasswordPage";
 
 export function App() {
@@ -45,6 +47,7 @@ export function App() {
               <Route path="/documents/:id/edit" element={<DocumentEditorPage />} />
               <Route path="/documents/:id/view" element={<DocumentViewerPage />} />
               <Route path="/my-signatures" element={<MyPendingSignaturesPage />} />
+              <Route path="/countersign" element={<CountersignPage />} />
 
               {/* Worklists. Grouped under /reports to match the backend's own route group,
                   so a URL here maps predictably onto an API path. */}
@@ -68,6 +71,7 @@ export function App() {
               <Route path="/admin/notification-rules" element={<NotificationRulesAdminPage />} />
               <Route path="/admin/jobs" element={<JobsAdminPage />} />
               <Route path="/admin/password-policy" element={<PasswordPolicyAdminPage />} />
+              <Route path="/admin/signature-policy" element={<SignaturePolicyAdminPage />} />
             </Route>
           </Route>
 
