@@ -30,7 +30,9 @@ export function DocumentLifecycleSection({
   // Only an in-force document can be periodically reviewed or withdrawn. A draft is
   // withdrawn instead (handled on the detail page), and a superseded revision has already
   // been replaced, so neither action applies.
-  const isEffective = document.status === "Effective";
+  // Also excludes annexures: periodic review and obsolescence belong to the parent, and the
+  // backend refuses both directly on an annexure.
+  const isEffective = document.status === "Effective" && document.parentDocumentId === null;
 
   if (!isEffective) {
     return null;
