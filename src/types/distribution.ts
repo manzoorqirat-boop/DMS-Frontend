@@ -20,6 +20,8 @@ export interface IssueCopyRequest {
   issuedToName: string;
   /** Required for Controlled and External; only Uncontrolled may be null (unlimited). */
   printLimit: number | null;
+  /** The issuer's signing credential, when the IssueCopy signature point is on. */
+  password?: string;
 }
 
 export interface DistributionView {
@@ -43,6 +45,12 @@ export interface DistributionView {
 export interface CloseOutRequest {
   outcome: DistributionStatus;
   note: string;
+  /**
+   * Required: CloseOutCopy is one of the two actions whose signature cannot be configured away.
+   * Writing off a controlled copy as lost is a finding, and must be attributable to more than
+   * a logged-in session.
+   */
+  password?: string;
 }
 
 export interface PendingRetrievalView {
