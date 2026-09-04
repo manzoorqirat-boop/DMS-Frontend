@@ -7,6 +7,7 @@ import {
   FileClock,
   FileDown,
   GitBranch,
+  Paperclip,
   Eye,
   History,
   Loader2,
@@ -361,11 +362,19 @@ export function DocumentDetailPage() {
   // Approved onward: Approved, Effective, Superseded and Obsolete all have frozen content
   // and a signature manifest. A Draft or InReview document has neither.
   const hasApprovedPdf = ["Approved", "Effective", "Superseded", "Obsolete"].includes(document.status);
-  const canEdit = document.status === "Draft";
-  const canSubmit = document.status === "Draft";
-  const canWithdraw = document.status === "Draft";
+
+  // An annexure is signed, issued and withdrawn as part of its parent's lifecycle, never on
+  // its own — the backend refuses every direct transition. Offering buttons that always error
+  // would be worse than not showing them, so all lifecycle actions are gated on this.
+  const isAnnexure = document.parentDocumentId !== null;
+  const canEdit = document.status === "Draft" && !isAnnexure;
+  const canSubmit = document.status === "Draft" && !isAnnexure;
+  const canWithdraw = document.status === "Draft" && !isAnnexure;
   const canMakeEffective = document.status === "Approved";
-  const canRevise = document.isCurrentRevision && (document.status === "Effective" || document.status === "Obsolete");
+  const canRevise =
+    !isAnnexure
+    && document.isCurrentRevision
+    && (document.status === "Effective" || document.status === "Obsolete");
 
   const revisionColumns: DataTableColumn<DocumentSummary>[] = [
     { key: "revision", header: "Rev", className: "font-mono", render: (r) => r.revisionLabel },
@@ -407,6 +416,24 @@ export function DocumentDetailPage() {
 
       {/* Lifecycle actions */}
       {actionError && <ActionErrorBanner message={actionError} />}
+
+      {isAnnexure && (
+        <div className="mb-5 flex items-start gap-2.5 rounded-[9px] border border-border bg-surface px-3.5 py-3 text-[13px] leading-relaxed text-text-secondary">
+          <Paperclip className="mt-0.5 h-4 w-4 flex-none text-text-tertiary" aria-hidden="true" />
+          <span>
+            This is an annexure. It is reviewed, approved, issued and withdrawn together with
+            its parent document, so it has no lifecycle actions of its own.{" "}
+            <button
+              type="button"
+              onClick={() => navigate(`/documents/${document.parentDocumentId}`)}
+              className="font-medium text-brand hover:underline"
+            >
+              Open the parent document
+            </button>
+            .
+          </span>
+        </div>
+      )}
 
       <div className="mb-8 flex flex-wrap gap-2.5">
         {/* The approved artefact. Offered from Approved onward — before that there is no
