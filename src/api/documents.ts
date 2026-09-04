@@ -1,7 +1,13 @@
 import { apiFetch, apiFetchBlob } from "@/lib/api-client";
 import { toQueryString } from "@/types/paging";
 import type { PagedResult } from "@/types/paging";
-import type { CreateDraftRequest, DocumentSummary, ListDocumentsParams, ReviseRequest } from "@/types/documents";
+import type {
+  CreateAnnexureRequest,
+  CreateDraftRequest,
+  DocumentSummary,
+  ListDocumentsParams,
+  ReviseRequest,
+} from "@/types/documents";
 
 /**
  * Reconstructed from usage in DocumentRegisterPage.tsx / DocumentDetailPage.tsx and verified
@@ -74,4 +80,26 @@ export function reviseDocument(id: string, request: ReviseRequest): Promise<Docu
  */
 export function downloadApprovedPdf(documentId: string): Promise<Blob> {
   return apiFetchBlob(`/api/documents/${documentId}/approved-pdf`);
+}
+
+/**
+ * POST /api/documents/{id}/annexures
+ *
+ * Only while the parent is a Draft: an annexure added to a document already in force would be
+ * new controlled content entering force without passing a signature route, and an annexure is
+ * never separately approvable.
+ */
+export function createAnnexure(
+  parentId: string,
+  request: CreateAnnexureRequest,
+): Promise<DocumentSummary> {
+  return apiFetch<DocumentSummary>(`/api/documents/${parentId}/annexures`, {
+    method: "POST",
+    body: request,
+  });
+}
+
+/** GET /api/documents/{id}/annexures — in annexure-number order. */
+export function listAnnexures(parentId: string, signal?: AbortSignal): Promise<DocumentSummary[]> {
+  return apiFetch<DocumentSummary[]>(`/api/documents/${parentId}/annexures`, { signal });
 }
