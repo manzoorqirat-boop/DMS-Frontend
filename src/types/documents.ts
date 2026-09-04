@@ -78,6 +78,12 @@ export interface ListDocumentsParams {
   documentTypeId?: string;
   search?: string;
   status?: DocumentStatus;
+  /**
+   * Annexures are excluded by default. The register is a list of procedures; showing every
+   * form alongside them roughly doubles its length with rows that only make sense next to
+   * their parent — which is where the document detail page already lists them.
+   */
+  includeAnnexures?: boolean;
   currentRevisionsOnly?: boolean;
   page?: number;
   pageSize?: number;
