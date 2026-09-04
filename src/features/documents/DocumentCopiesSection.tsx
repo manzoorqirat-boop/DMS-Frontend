@@ -250,7 +250,11 @@ export function DocumentCopiesSection({
 
       {canDistribute && (
         <form onSubmit={handleIssue} className="mt-4 rounded-xl border border-border bg-surface-raised p-4">
-          <h3 className="mb-3 font-display text-sm font-semibold text-text-primary">Issue a copy</h3>
+          <h3 className="mb-1 font-display text-sm font-semibold text-text-primary">Issue a copy</h3>
+          <p className="mb-3 text-xs text-text-secondary">
+            Any annexures are issued at the same time, each with its own copy number and scan
+            code — a procedure without its record forms is an incomplete issue.
+          </p>
           <div className="grid gap-3 sm:grid-cols-4">
             <label className="text-xs font-semibold text-text-primary">
               Type
