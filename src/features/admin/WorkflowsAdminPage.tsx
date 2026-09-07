@@ -27,7 +27,8 @@ function ErrorBanner({ message }: { message: string }) {
 const emptyStep = (): WorkflowStepRequest => ({ roleId: "", role: "Reviewer", stepLabel: "" });
 
 export function WorkflowsAdminPage() {
-  const { documentTypes, sites } = useOrganisationData();
+  const { documentTypes, sites, loadError, isLoading: isLoadingOrganisation } =
+    useOrganisationData();
 
   const [roles, setRoles] = useState<RoleView[]>([]);
   const [selectedTypeId, setSelectedTypeId] = useState("");
@@ -184,6 +185,17 @@ export function WorkflowsAdminPage() {
         to one site) at a time. To change an existing route's steps, create a new version here
         and activate it; there's no in-place step editor yet.
       </p>
+
+      {/* Shown above the dropdown, because an empty dropdown with no explanation reads as
+          "no document types exist" and sends you looking in the wrong place. */}
+      {loadError && <ErrorBanner message={loadError} />}
+
+      {!loadError && !isLoadingOrganisation && documentTypes.length === 0 && (
+        <p className="mb-6 rounded-[9px] border border-border bg-surface px-3.5 py-2.5 text-[13px] text-text-secondary">
+          No active document types yet. Create one under Configuration → Document types first —
+          a review route is defined per type.
+        </p>
+      )}
 
       <div className="mb-6 w-72">
         <label htmlFor="workflowType" className="mb-[6px] block text-xs font-semibold text-text-primary">Document type</label>
