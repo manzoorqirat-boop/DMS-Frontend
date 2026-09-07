@@ -9,6 +9,9 @@ export interface OrganisationDataValue {
   sites: SiteSummary[];
   departments: DepartmentSummary[];
   documentTypes: DocumentTypeSummary[];
+  /** Non-null when master data failed to load. Screens can surface it rather than
+   *  rendering an empty dropdown that looks like missing data. */
+  loadError: string | null;
   isLoading: boolean;
   getSiteName: (id: string) => string;
   getDepartmentName: (id: string) => string;
@@ -36,17 +39,34 @@ export function OrganisationDataProvider({ children }: { children: ReactNode }) 
   const [departments, setDepartments] = useState<DepartmentSummary[]>([]);
   const [documentTypes, setDocumentTypes] = useState<DocumentTypeSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([listSites(), listDepartments(), listDocumentTypes()])
-      .then(([siteList, departmentList, typeList]) => {
-        setSites(siteList);
-        setDepartments(departmentList);
-        setDocumentTypes(typeList);
+    // allSettled, not all. Promise.all rejects as soon as ONE call fails, which meant a single
+    // failing endpoint left all three lists empty — every dropdown fed by this context silently
+    // showed nothing, with no error anywhere to say why. Each list now loads independently, so
+    // a document-type dropdown still works when the sites endpoint is having a bad day.
+    Promise.allSettled([listSites(), listDepartments(), listDocumentTypes()])
+      .then(([siteResult, departmentResult, typeResult]) => {
+        if (siteResult.status === "fulfilled") setSites(siteResult.value);
+        if (departmentResult.status === "fulfilled") setDepartments(departmentResult.value);
+        if (typeResult.status === "fulfilled") setDocumentTypes(typeResult.value);
+
+        // Surfaced rather than swallowed. A silently empty dropdown is the hardest kind of
+        // failure to diagnose — it looks like missing data rather than a broken request, and
+        // sends you looking in the wrong place entirely.
+        const failed = [
+          siteResult.status === "rejected" ? "sites" : null,
+          departmentResult.status === "rejected" ? "departments" : null,
+          typeResult.status === "rejected" ? "document types" : null,
+        ].filter((x): x is string => x !== null);
+
+        setLoadError(
+          failed.length === 0
+            ? null
+            : `Could not load ${failed.join(", ")}. Dropdowns that depend on this will be empty.`,
+        );
       })
-      // Missing master data degrades to showing raw ids/codes rather than breaking the
-      // screens that depend on it — see the lookup functions below.
-      .catch(() => undefined)
       .finally(() => setIsLoading(false));
   }, []);
 
@@ -59,6 +79,7 @@ export function OrganisationDataProvider({ children }: { children: ReactNode }) 
       sites,
       departments,
       documentTypes,
+      loadError,
       isLoading,
       getSiteName: (id) => siteById.get(id)?.name ?? id,
       getDepartmentName: (id) => departmentById.get(id)?.name ?? id,
@@ -67,7 +88,7 @@ export function OrganisationDataProvider({ children }: { children: ReactNode }) 
         return type ? `${type.code} — ${type.name}` : id;
       },
     };
-  }, [sites, departments, documentTypes, isLoading]);
+  }, [sites, departments, documentTypes, isLoading, loadError]);
 
   return <OrganisationDataContext.Provider value={value}>{children}</OrganisationDataContext.Provider>;
 }
