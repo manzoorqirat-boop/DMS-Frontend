@@ -14,8 +14,13 @@
  *  draft — deliberately not part of the six-stage LIFECYCLE_STAGES rail, but still a real
  *  status StatusBadge must render (it falls back to a plain gray chip for anything not in
  *  the rail's six, which already covers this correctly). */
+import type { DocumentScope } from "@/types/collaboration";
+
 export type DocumentStatus =
   | "Draft"
+  /** Collaborative review: reviewers may edit the content directly. Still editable. */
+  | "InDraftReview"
+  /** The formal signature route. Content frozen so signatures bind to what was reviewed. */
   | "InReview"
   | "Approved"
   | "Effective"
@@ -37,6 +42,12 @@ export interface DocumentSummary {
   revisionLabel: string;
   familyId: string;
   isCurrentRevision: boolean;
+
+  /**
+   * Local documents apply only at their own site; global ones are issued centrally for other
+   * sites to adopt. An adopting site takes the text verbatim and cannot edit it.
+   */
+  scope: DocumentScope;
 
   /**
    * The SOP this annexure belongs to, or null for a document that stands on its own.

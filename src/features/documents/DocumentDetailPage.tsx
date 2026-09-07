@@ -13,6 +13,7 @@ import {
   Loader2,
   PenLine,
   ScrollText,
+  Users,
 } from "lucide-react";
 import {
   downloadApprovedPdf,
@@ -33,7 +34,10 @@ import { PaginationBar } from "@/components/PaginationBar";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DesktopEditButton } from "@/features/documents/DesktopEditButton";
+import { closeDraftReview, startDraftReview } from "@/api/collaboration";
+import { DocumentAdoptionsSection } from "@/features/documents/DocumentAdoptionsSection";
 import { DocumentAnnexuresSection } from "@/features/documents/DocumentAnnexuresSection";
+import { DocumentCommentsSection } from "@/features/documents/DocumentCommentsSection";
 import { DocumentCopiesSection } from "@/features/documents/DocumentCopiesSection";
 import { DocumentLifecycleSection } from "@/features/documents/DocumentLifecycleSection";
 import type { DocumentSummary } from "@/types/documents";
@@ -79,6 +83,7 @@ export function DocumentDetailPage() {
 
   // Shared by every action panel below — only one is ever open at a time, so one error slot is enough.
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isDraftReviewBusy, setIsDraftReviewBusy] = useState(false);
 
   // Submit for review
   const [showSubmitPanel, setShowSubmitPanel] = useState(false);
@@ -270,6 +275,21 @@ export function DocumentDetailPage() {
     }
   }
 
+  async function handleDraftReview(start: boolean) {
+    if (!document) return;
+    setIsDraftReviewBusy(true);
+    setActionError(null);
+    try {
+      setDocument(start ? await startDraftReview(document.id) : await closeDraftReview(document.id));
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError ? err.message : "That review round could not be changed.",
+      );
+    } finally {
+      setIsDraftReviewBusy(false);
+    }
+  }
+
   async function handleDownloadPdf() {
     if (!document) return;
     setIsDownloadingPdf(true);
@@ -368,7 +388,10 @@ export function DocumentDetailPage() {
   // its own — the backend refuses every direct transition. Offering buttons that always error
   // would be worse than not showing them, so all lifecycle actions are gated on this.
   const isAnnexure = document.parentDocumentId !== null;
-  const canEdit = document.status === "Draft" && !isAnnexure;
+  const isInDraftReview = document.status === "InDraftReview";
+  // Editable during the collaborative round too — that is the point of the two workflows.
+  const canEdit = document.isEditable && !isAnnexure;
+  const canStartDraftReview = document.status === "Draft" && !isAnnexure;
   const canSubmit = document.status === "Draft" && !isAnnexure;
   const canWithdraw = document.status === "Draft" && !isAnnexure;
   const canMakeEffective = document.status === "Approved";
@@ -440,6 +463,34 @@ export function DocumentDetailPage() {
         {/* The approved artefact. Offered from Approved onward — before that there is no
             frozen content and no signature manifest to render, and the backend refuses with
             not_approved rather than producing a PDF of a moving target. */}
+        {/* The collaborative round: reviewers edit directly, no signatures. Distinct from
+            Submit, which begins the frozen signature route. */}
+        {canStartDraftReview && (
+          <button
+            type="button"
+            onClick={() => handleDraftReview(true)}
+            disabled={isDraftReviewBusy}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface disabled:opacity-60"
+          >
+            {isDraftReviewBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Users className="h-4 w-4" aria-hidden="true" />
+            )}
+            Circulate for review
+          </button>
+        )}
+        {isInDraftReview && (
+          <button
+            type="button"
+            onClick={() => handleDraftReview(false)}
+            disabled={isDraftReviewBusy}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface disabled:opacity-60"
+          >
+            {isDraftReviewBusy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            Close review round
+          </button>
+        )}
         {hasApprovedPdf && (
           <button
             type="button"
@@ -727,6 +778,15 @@ export function DocumentDetailPage() {
       {/* Only on a parent: an annexure cannot itself have annexures, and the backend refuses
           the nesting outright. */}
       {!isAnnexure && <DocumentAnnexuresSection parent={document} />}
+
+      {/* Rendered at every status: an author returning to a rejected document needs to see
+          what was objected to, and the section explains itself when commenting is closed. */}
+      <DocumentCommentsSection document={document} />
+
+      {/* Only meaningful for a global document — a local one has nothing to adopt. */}
+      {document.scope === "Global" && !isAnnexure && (
+        <DocumentAdoptionsSection document={document} />
+      )}
 
       <DocumentLifecycleSection document={document} onChanged={setDocument} />
 
