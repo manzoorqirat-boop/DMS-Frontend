@@ -7,6 +7,7 @@ import {
   FileClock,
   FileDown,
   GitBranch,
+  Globe2,
   Paperclip,
   Eye,
   History,
@@ -34,7 +35,7 @@ import { PaginationBar } from "@/components/PaginationBar";
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { DesktopEditButton } from "@/features/documents/DesktopEditButton";
-import { closeDraftReview, startDraftReview } from "@/api/collaboration";
+import { closeDraftReview, setDocumentScope, startDraftReview } from "@/api/collaboration";
 import { DocumentAdoptionsSection } from "@/features/documents/DocumentAdoptionsSection";
 import { DocumentAnnexuresSection } from "@/features/documents/DocumentAnnexuresSection";
 import { DocumentCommentsSection } from "@/features/documents/DocumentCommentsSection";
@@ -84,6 +85,7 @@ export function DocumentDetailPage() {
   // Shared by every action panel below — only one is ever open at a time, so one error slot is enough.
   const [actionError, setActionError] = useState<string | null>(null);
   const [isDraftReviewBusy, setIsDraftReviewBusy] = useState(false);
+  const [isScopeBusy, setIsScopeBusy] = useState(false);
 
   // Submit for review
   const [showSubmitPanel, setShowSubmitPanel] = useState(false);
@@ -275,6 +277,25 @@ export function DocumentDetailPage() {
     }
   }
 
+  async function handleToggleScope() {
+    if (!document) return;
+    setIsScopeBusy(true);
+    setActionError(null);
+    try {
+      setDocument(
+        await setDocumentScope(document.id, {
+          scope: document.scope === "Global" ? "Local" : "Global",
+        }),
+      );
+    } catch (err) {
+      setActionError(
+        err instanceof ApiError ? err.message : "The scope could not be changed.",
+      );
+    } finally {
+      setIsScopeBusy(false);
+    }
+  }
+
   async function handleDraftReview(start: boolean) {
     if (!document) return;
     setIsDraftReviewBusy(true);
@@ -392,6 +413,7 @@ export function DocumentDetailPage() {
   // Editable during the collaborative round too — that is the point of the two workflows.
   const canEdit = document.isEditable && !isAnnexure;
   const canStartDraftReview = document.status === "Draft" && !isAnnexure;
+  const canSetScope = document.status === "Draft" && !isAnnexure;
   const canSubmit = document.status === "Draft" && !isAnnexure;
   const canWithdraw = document.status === "Draft" && !isAnnexure;
   const canMakeEffective = document.status === "Approved";
@@ -463,6 +485,29 @@ export function DocumentDetailPage() {
         {/* The approved artefact. Offered from Approved onward — before that there is no
             frozen content and no signature manifest to render, and the backend refuses with
             not_approved rather than producing a PDF of a moving target. */}
+        {/* Scope. Only on a Draft, and only for a parent — annexures inherit their parent's
+            scope, so offering it here would imply a choice that does not exist. */}
+        {canSetScope && (
+          <button
+            type="button"
+            onClick={handleToggleScope}
+            disabled={isScopeBusy}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface disabled:opacity-60"
+            title={
+              document.scope === "Global"
+                ? "Other sites may adopt this once it is effective"
+                : "Let other sites adopt this document"
+            }
+          >
+            {isScopeBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Globe2 className="h-4 w-4" aria-hidden="true" />
+            )}
+            {document.scope === "Global" ? "Make site-local" : "Make global"}
+          </button>
+        )}
+
         {/* The collaborative round: reviewers edit directly, no signatures. Distinct from
             Submit, which begins the frozen signature route. */}
         {canStartDraftReview && (

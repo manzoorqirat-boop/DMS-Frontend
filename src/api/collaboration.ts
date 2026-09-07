@@ -6,6 +6,7 @@ import type {
   AdoptionView,
   RespondToCommentRequest,
   ReviewCommentView,
+  SetScopeRequest,
   WithdrawAdoptionRequest,
 } from "@/types/collaboration";
 
@@ -46,6 +47,23 @@ export function withdrawAdoption(
 /** GET /api/adoptions/adoptable/{siteId} — global documents this site could adopt but hasn't. */
 export function listAdoptable(siteId: string, signal?: AbortSignal): Promise<DocumentSummary[]> {
   return apiFetch<DocumentSummary[]>(`/api/adoptions/adoptable/${siteId}`, { signal });
+}
+
+/**
+ * POST /api/documents/{id}/scope
+ *
+ * Marks a document as issued centrally for other sites to adopt, or back to local. Draft only:
+ * a document that has been through review was approved as what it was, and widening its reach
+ * afterwards would extend it to sites whose reviewers never saw it.
+ */
+export function setDocumentScope(
+  documentId: string,
+  request: SetScopeRequest,
+): Promise<DocumentSummary> {
+  return apiFetch<DocumentSummary>(`/api/documents/${documentId}/scope`, {
+    method: "POST",
+    body: request,
+  });
 }
 
 /* ---------------------------------------------------------------------- draft review */

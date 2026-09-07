@@ -80,3 +80,8 @@ export interface ReviewCommentView {
   respondedBy: string | null;
   respondedAt: string | null;
 }
+
+/** Body of POST /api/documents/{id}/scope. Draft only — the backend refuses otherwise. */
+export interface SetScopeRequest {
+  scope: DocumentScope;
+}
