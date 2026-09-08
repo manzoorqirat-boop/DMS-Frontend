@@ -41,6 +41,7 @@ import { DocumentAnnexuresSection } from "@/features/documents/DocumentAnnexures
 import { DocumentCommentsSection } from "@/features/documents/DocumentCommentsSection";
 import { DocumentCopiesSection } from "@/features/documents/DocumentCopiesSection";
 import { DocumentLifecycleSection } from "@/features/documents/DocumentLifecycleSection";
+import type { SignatureRole } from "@/types/workflows";
 import type { DocumentSummary } from "@/types/documents";
 import type { AuditEventView } from "@/types/audit";
 import type { PagedResult } from "@/types/paging";
@@ -219,10 +220,13 @@ export function DocumentDetailPage() {
     }
   }
 
-  function openSignPanel(stepOrder: number, role: "Reviewer" | "Approver") {
+  function openSignPanel(stepOrder: number, role: SignatureRole) {
     setActionError(null);
     setSigningStepOrder(stepOrder);
-    setSignMeaning(role === "Approver" ? "Approved" : "Reviewed");
+    // A quality approver is approving, not reviewing. Without this a QO step would default to
+    // "Reviewed" and record a quality approval as a review — the §11.50(a)(3) meaning would be
+    // wrong on the signature manifest, which is the one place it has to be right.
+    setSignMeaning(role === "Reviewer" ? "Reviewed" : "Approved");
     setSignPassword("");
     setSignReason("");
   }
@@ -773,8 +777,11 @@ export function DocumentDetailPage() {
                             onChange={(e) => setSignMeaning(e.target.value as SignatureMeaning)}
                             className={inputClasses}
                           >
-                            <option value={step.role === "Approver" ? "Approved" : "Reviewed"}>
-                              {step.role === "Approver" ? "Approved" : "Reviewed"}
+                            {/* Reviewer reviews; both approver kinds approve. Keyed off
+                                Reviewer rather than Approver so a QualityApprover step does
+                                not silently fall through to "Reviewed". */}
+                            <option value={step.role === "Reviewer" ? "Reviewed" : "Approved"}>
+                              {step.role === "Reviewer" ? "Reviewed" : "Approved"}
                             </option>
                             <option value="Rejected">Rejected</option>
                           </select>
