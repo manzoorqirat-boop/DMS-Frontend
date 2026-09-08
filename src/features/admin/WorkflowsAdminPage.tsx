@@ -255,6 +255,7 @@ export function WorkflowsAdminPage() {
                     >
                       <option value="Reviewer">Reviewer</option>
                       <option value="Approver">Approver</option>
+                      <option value="QualityApprover">Quality approver (QO)</option>
                     </select>
                   </div>
                   <div className="min-w-[200px] flex-1">
