@@ -24,6 +24,8 @@ export type DocumentStatus =
   | "InReview"
   | "Approved"
   | "Effective"
+  /** In force but temporarily stopped. Reversible, unlike Obsolete. */
+  | "Suspended"
   | "Superseded"
   | "Obsolete"
   | "Withdrawn";
@@ -67,6 +69,8 @@ export interface DocumentSummary {
   effectiveDate: string | null;
   nextReviewDate: string | null;
   obsoleteReason: string | null;
+  /** Why the document is currently stopped. Cleared on reinstatement. */
+  suspensionReason: string | null;
   retainUntil: string | null;
   disposition: DispositionAction | null;
   isContentDestroyed: boolean;
