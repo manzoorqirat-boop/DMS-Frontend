@@ -101,3 +101,13 @@ export interface ObsoleteRequest {
   reason: string;
   password?: string;
 }
+
+/**
+ * Body of POST /api/documents/{id}/suspend and /reinstate.
+ *
+ * A reason is required in both directions — reinstating without saying what the investigation
+ * found leaves a gap exactly where the record needs to explain itself.
+ */
+export interface SuspensionRequest {
+  reason: string;
+}
