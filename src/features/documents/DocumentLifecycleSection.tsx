@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { AlertTriangle, CalendarCheck, Ban } from "lucide-react";
-import { obsoleteDocument, recordPeriodicReview } from "@/api/lifecycle";
+import { AlertTriangle, Ban, CalendarCheck, PauseCircle } from "lucide-react";
+import {
+  obsoleteDocument,
+  recordPeriodicReview,
+  reinstateDocument,
+  suspendDocument,
+} from "@/api/lifecycle";
 import { ApiError } from "@/lib/api-client";
 import { formatDateOnly } from "@/lib/format";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { SignatureDialog } from "@/components/SignatureDialog";
 import type { DocumentSummary } from "@/types/documents";
 
@@ -32,9 +38,15 @@ export function DocumentLifecycleSection({
   // been replaced, so neither action applies.
   // Also excludes annexures: periodic review and obsolescence belong to the parent, and the
   // backend refuses both directly on an annexure.
-  const isEffective = document.status === "Effective" && document.parentDocumentId === null;
+  const isParent = document.parentDocumentId === null;
+  const isEffective = document.status === "Effective" && isParent;
+  const isSuspended = document.status === "Suspended" && isParent;
 
-  if (!isEffective) {
+  // A suspended document still needs these: it can be reviewed, reinstated, or withdrawn.
+  // Hiding the section entirely would strand it with no way forward.
+  const showSection = isEffective || isSuspended;
+
+  if (!showSection) {
     return null;
   }
 
@@ -46,6 +58,18 @@ export function DocumentLifecycleSection({
         <div role="alert" className="mb-3 flex items-start gap-2.5 rounded-[9px] border border-danger/25 bg-danger-tint px-3.5 py-2.5 text-[13px] text-[#9c332f]">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" aria-hidden="true" />
           <span>{error}</span>
+        </div>
+      )}
+
+      {isSuspended && (
+        <div className="mb-3 flex items-start gap-2.5 rounded-[9px] border border-stage-review/40 bg-stage-review/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-900">
+          <PauseCircle className="mt-0.5 h-4 w-4 flex-none text-stage-review" aria-hidden="true" />
+          <span>
+            <strong>This document is suspended — do not work to it.</strong>
+            {document.suspensionReason && ` ${document.suspensionReason}`}
+            {" "}No new controlled copies can be issued while it is stopped. Copies already
+            issued are not recalled automatically — collect them through the retrieval worklist.
+          </span>
         </div>
       )}
 
@@ -69,6 +93,20 @@ export function DocumentLifecycleSection({
             Record periodic review
           </button>
 
+          {/* Suspension is reversible where obsolescence is not, so it sits between the two —
+              the middle option in escalating severity. */}
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              setPending(isSuspended ? "reinstate" : "suspend");
+            }}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface"
+          >
+            <PauseCircle className="h-4 w-4" aria-hidden="true" />
+            {isSuspended ? "Reinstate" : "Suspend"}
+          </button>
+
           <button
             type="button"
             onClick={() => {
@@ -82,6 +120,39 @@ export function DocumentLifecycleSection({
           </button>
         </div>
       </div>
+
+      {/* Not a SignatureDialog: suspension is not one of the configurable signature points, so
+          asking for a password here would imply a §11.50 signature that is not being recorded. */}
+      <ConfirmDialog
+        open={pending === "suspend" || pending === "reinstate"}
+        destructive={pending === "suspend"}
+        title={pending === "suspend" ? "Suspend this document?" : "Reinstate this document?"}
+        description={
+          pending === "suspend"
+            ? "It stays in force on paper already issued, but no new copies can be issued and nobody should work to it until the investigation concludes."
+            : "It returns to effective use with its original effective date — the audit trail carries the gap."
+        }
+        confirmLabel={pending === "suspend" ? "Suspend" : "Reinstate"}
+        reasonLabel={pending === "suspend" ? "Why it is being stopped" : "What the investigation concluded"}
+        reasonPlaceholder={
+          pending === "suspend"
+            ? "Step 6.3 conflicts with the validated cleaning cycle"
+            : "Reviewed against the validated cycle; no conflict found"
+        }
+        onCancel={() => setPending(null)}
+        onConfirm={async (reason) => {
+          try {
+            const updated =
+              pending === "suspend"
+                ? await suspendDocument(document.id, { reason })
+                : await reinstateDocument(document.id, { reason });
+            onChanged(updated);
+            setPending(null);
+          } catch (err) {
+            setError(err instanceof ApiError ? err.message : "That could not be recorded.");
+          }
+        }}
+      />
 
       <SignatureDialog
         open={pending === "periodic-review"}
