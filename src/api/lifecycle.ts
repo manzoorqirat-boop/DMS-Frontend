@@ -10,6 +10,7 @@ import type {
   RetentionPolicyView,
   ReviewDueView,
   ReviewPolicyView,
+  SuspensionRequest,
   UpdateRetentionPolicyRequest,
   UpdateReviewPolicyRequest,
 } from "@/types/lifecycle";
@@ -124,6 +125,28 @@ export function updateRetentionPolicy(
 ): Promise<RetentionPolicyView> {
   return apiFetch<RetentionPolicyView>(`/api/retention-policies/${id}`, {
     method: "PUT",
+    body: request,
+  });
+}
+
+/** POST /api/documents/{id}/suspend — stop the document being worked to, pending investigation. */
+export function suspendDocument(
+  documentId: string,
+  request: SuspensionRequest,
+): Promise<DocumentSummary> {
+  return apiFetch<DocumentSummary>(`/api/documents/${documentId}/suspend`, {
+    method: "POST",
+    body: request,
+  });
+}
+
+/** POST /api/documents/{id}/reinstate — return it to force, the investigation having cleared it. */
+export function reinstateDocument(
+  documentId: string,
+  request: SuspensionRequest,
+): Promise<DocumentSummary> {
+  return apiFetch<DocumentSummary>(`/api/documents/${documentId}/reinstate`, {
+    method: "POST",
     body: request,
   });
 }
